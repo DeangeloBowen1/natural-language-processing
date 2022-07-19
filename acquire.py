@@ -2,43 +2,52 @@ from requests import get
 from bs4 import BeautifulSoup
 import numpy as np
 import pandas as pd
+import os
 
-def parse_blog_articles(url):
-    """
-    This function used together with the get_blog_articles() function, 
-    parses the html from the website and displays it in python
-    """
+
+
+def get_blog_urls():
+    headers = {'user-agent': 'Innis Codeup Data Science'}
+    response = get('https://codeup.com/blog/', headers=headers)
+    soup = BeautifulSoup(response.text, features="lxml")
+    urls = [a.attrs['href'] for a in soup.select('a.more-link')]
+    return urls
+    
+
+def parse_blog(url):
     url = url
+    #establish header
+    headers = {'User-Agent': 'Codeup Data Science'}
+    response = get(url, headers=headers)
     
-    # establish header
-    headers = {'User-Agent':'CodeUp Data Science'}
-    resposne = get(url, headers=headers)
-    
-    # create soup variable containing response content
+    # Make a soup variable holding the response content
     soup = BeautifulSoup(response.content, 'html.parser')
     
-    # create a dictionary that holds each url and its content
     output = {}
-    output['title'] = soup.find('h1', class_ = 'entry-title').text
-    output['published'] = soup.find('span', class_='published').text
-    output['category'] = soup.find('a', rel='category tag').text
-    output['content'] = soup.find('div', class_='entry-content').text.strip().replace('\n', ' ')
+    output['title'] = soup.find('h1', class_='entry-title').text
+    output['date'] = soup.find('span', class_='published').text
+    output['category'] = soup.find('a', rel = 'category tag').text
+    output['content'] = soup.find('div', class_= 'entry-content').text.strip().replace('\n', ' ').replace('\xa0', ' ')
     
     return output
 
 
-def get_blog_articles(url):
-    """
-    This function takes in a list of url from CodeUp blod articles.
-    Used with pare_blog_articles, it looks for title, published date, category, and content
-    then displays them.
-    """
+
+def get_blog_articles(use_cache=True):
+    
+    if os.path.exists('blog_articles.json') and use_cache:
+        return pd.read_json('blog_articles.json')
+
+    urls = get_blog_urls()
     output = []
     
-    for urls in url:
-        output.append(parse_blog_articles(urls))
+    for url in urls:
+        output.append(parse_blog(url))
         
-    return output
+    df = pd.DataFrame(output)
+    df.to_json('blog_articles.json', orient='records')
+    
+    return df
 
 
 def parse_news_article(article, category):
@@ -79,7 +88,6 @@ def get_news_articles(use_cache=True):
     articles = []
 
     for category in categories:
-        print(f'Getting {category} articles')
         articles.extend(parse_news_page(category))
 
     df = pd.DataFrame(articles)
