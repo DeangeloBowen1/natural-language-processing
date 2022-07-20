@@ -7,7 +7,7 @@ import os
 
 
 def get_blog_urls():
-    headers = {'user-agent': 'Innis Codeup Data Science'}
+    headers = {'user-agent': 'Jemison Codeup Data Science'}
     response = get('https://codeup.com/blog/', headers=headers)
     soup = BeautifulSoup(response.text, features="lxml")
     urls = [a.attrs['href'] for a in soup.select('a.more-link')]
